@@ -607,6 +607,14 @@ cd xingzhi-ai-470
 
 > 仓库自带板级调好的 `sdkconfig`；一般直接 `idf.py build` 即可。
 
+在已激活的 ESP-IDF Python 环境中安装资源生成依赖：
+
+```bash
+python -m pip install Pillow numpy qoi-conv packaging
+```
+
+`assets/lang_config.h` 由 CMake 根据 `main/assets/lang_home.cc` 的现有中英文词条表自动生成到构建目录，无需额外下载语言包。
+
 ### 13.4 关键配置摘要
 
 | 项 | 值 | 说明 |
@@ -627,6 +635,8 @@ cd xingzhi-ai-470
 
 idf.py build
 ```
+
+若 ESP-IDF 将 `esp32s31` 列为预览目标，使用 `idf.py --preview build`。
 
 构建国外版时，运行 `idf.py menuconfig`，选择 **Metalio E-Ink4-Plus → Board Type → Metalio E-Ink4-Plus Global (4.7 parallel)** 后编译。该板型标识为 `metalio-e-ink4-plus-global`，复用现有硬件驱动，在所有首页风格中隐藏 WorkBuddy；未保存语言偏好时默认使用英文，云信 OTA/激活及 WebSocket 请求使用国外版 appkey。国外版仅使用 Wi-Fi：网络设置只提供 Wi-Fi 配网，隐藏 4G 及 SIM 卡切换，并忽略此前保存的 4G 模式。已保存的语言偏好优先，仍可在设置中切换中文和英文。默认板型仍为 `metalio-e-ink4-plus`。
 

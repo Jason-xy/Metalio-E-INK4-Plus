@@ -248,6 +248,24 @@ idf_component_register(
         esp-wifi-connect esp-ml307 espressif__cjson 78__esp-opus-encoder 78__esp-opus
 )
 
+# lang_home.cc owns the runtime translations; generate matching declarations
+# without requiring the unpublished locales/ input used by gen_lang.py.
+set(_lang_source "${CMAKE_CURRENT_SOURCE_DIR}/assets/lang_home.cc")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_lang_source}")
+file(READ "${_lang_source}" _lang_content)
+string(REGEX MATCHALL "\n[ \t]*X\\([A-Z][A-Z0-9_]*," _lang_entries "${_lang_content}")
+if(NOT _lang_entries)
+    message(FATAL_ERROR "No runtime language strings found in ${_lang_source}")
+endif()
+set(LANG_STRING_DECLARATIONS "")
+foreach(_lang_entry IN LISTS _lang_entries)
+    string(REGEX REPLACE "[\r\n \t]*X\\(([A-Z][A-Z0-9_]*)," "\\1" _lang_name "${_lang_entry}")
+    string(APPEND LANG_STRING_DECLARATIONS "extern const char* ${_lang_name};\n")
+endforeach()
+list(LENGTH _lang_entries LANG_STRING_COUNT)
+configure_file("assets/lang_config.h.in" "generated/assets/lang_config.h" @ONLY)
+target_include_directories(${COMPONENT_LIB} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
 if(CONFIG_IDF_TARGET_ESP32S31)
     include("${CMAKE_CURRENT_LIST_DIR}/boards/common/power_policy/s31_sleep/s31_sleep_sdk.cmake")
 endif()

@@ -1088,6 +1088,8 @@ enum class LangStringId : size_t {
 };
 
 static constexpr size_t kStringCount = static_cast<size_t>(LangStringId::kCount);
+static_assert(kStringCount == kStringDeclarationCount,
+              "Generated language declarations must match the runtime string table");
 
 static const char* const kZh[kStringCount] = {
 #define LANG_ZH(name, zh, en) zh,

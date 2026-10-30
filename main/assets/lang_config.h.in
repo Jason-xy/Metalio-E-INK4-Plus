@@ -1,0 +1,17 @@
+#pragma once
+
+// Generated from the runtime string table in lang_home.cc.
+#ifndef LANG_DEFAULT_CODE
+#define LANG_DEFAULT_CODE "zh-CN"
+#endif
+
+namespace Lang {
+inline constexpr unsigned kStringDeclarationCount = @LANG_STRING_COUNT@;
+extern const char* CODE;
+const char* Current();
+bool SetLanguage(const char* code, bool persist = true);
+void InitFromNvs();
+
+namespace Strings {
+@LANG_STRING_DECLARATIONS@}  // namespace Strings
+}  // namespace Lang

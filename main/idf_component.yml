@@ -2,6 +2,8 @@
 dependencies:
   idf:
     version: '>=5.4.0'
+  78/uart-uhci: "^0.4.1"
+  espressif/iot_eth: "^0.1.0"
   lvgl/lvgl: "==9.5.0"
   espressif/esp_lvgl_adapter: "==0.6.3"
   espressif/esp_mmap_assets: '>=1.2'
