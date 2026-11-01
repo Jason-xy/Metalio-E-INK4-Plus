@@ -140,6 +140,7 @@ private:
         BODY,
         CHUNK_SIZE,
         CHUNK_DATA,
+        CHUNK_CRLF,
         CHUNK_TRAILER,
         COMPLETE
     };
@@ -160,7 +161,7 @@ private:
     bool ParseHeaderLine(const std::string& line);
     void ParseChunkedBody(const std::string& data);
     void ParseRegularBody(const std::string& data);
-    size_t ParseChunkSize(const std::string& chunk_size_line);
+    bool ParseChunkSize(const std::string& chunk_size_line, size_t& size);
     std::string GetNextLine(std::string& buffer);
     bool HasCompleteLine(const std::string& buffer);
     void SetError();
