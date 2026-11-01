@@ -4,7 +4,9 @@
 #include "standby_classic_ui.h"
 #include "standby_classic_weather_store.h"
 #include "standby_classic_weather_fetch.h"
+#if !CONFIG_INKMETER_ENABLED
 #include "standby_classic_todos.h"
+#endif
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -14,6 +16,21 @@
 
 #include "assets/lang_config.h"
 #include "haptic_feedback.h"
+#if CONFIG_INKMETER_ENABLED
+#include "screen_common.h"
+#include "standby_screen/standby_screen.h"
+
+static void StandbyClassic_OnHomeBtnClicked(lv_event_t* /*e*/) {
+    lv_async_call([](void*) {
+        if (StandbyClassic_alive && StandbyClassic_as_overlay) {
+            StandbyScreen::Dismiss();
+            return;
+        }
+        ScreenGoHome();
+    }, nullptr);
+}
+
+#endif
 
 void StandbyClassic_RefreshDateOnce() {
     if (StandbyClassic_State().date_lbl == nullptr) {
@@ -87,7 +104,9 @@ void StandbyClassic_BuildUi(lv_obj_t* root) {
     lv_obj_set_style_border_width(root, 0, 0);
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
 
+#if !CONFIG_INKMETER_ENABLED
     StandbyClassic_todos.clear();
+#endif
 
     const lv_coord_t content_w = LV_HOR_RES - 2 * kSidePad;
     const lv_coord_t content_h = LV_VER_RES - kTopPad;
@@ -212,6 +231,7 @@ void StandbyClassic_BuildUi(lv_obj_t* root) {
     lv_obj_set_style_text_color(StandbyClassic_State().weather_temp, lv_color_black(), 0);
     lv_obj_clear_flag(StandbyClassic_State().weather_temp, LV_OBJ_FLAG_CLICKABLE);
 
+#if !CONFIG_INKMETER_ENABLED
     StandbyClassic_State().todo_host = lv_obj_create(center);
     lv_obj_remove_style_all(StandbyClassic_State().todo_host);
     lv_obj_set_width(StandbyClassic_State().todo_host, lv_pct(100));
@@ -225,6 +245,7 @@ void StandbyClassic_BuildUi(lv_obj_t* root) {
     lv_obj_clear_flag(StandbyClassic_State().todo_host, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(StandbyClassic_State().todo_host, LV_OBJ_FLAG_CLICKABLE);
 
+#endif
     StandbyClassic_State().home_btn = lv_obj_create(center);
     lv_obj_remove_style_all(StandbyClassic_State().home_btn);
     lv_obj_set_size(StandbyClassic_State().home_btn, content_w, kHomeBtnH);
@@ -277,7 +298,9 @@ void StandbyClassic_BuildUi(lv_obj_t* root) {
 void StandbyClassic_StartOverlayRuntime() {
     StandbyClassic_RefreshDateOnce();
     StandbyClassic_ApplyWeatherUi();
+#if !CONFIG_INKMETER_ENABLED
     StandbyClassic_ApplyTodosFromCache();
+#endif
     StandbyClassic_ScheduleWeatherEnsure();
 }
 
@@ -304,6 +327,8 @@ void StandbyClassic_Teardown() {
     StandbyClassic_StopRuntime();
     StandbyClassic_alive = false;
     StandbyClassic_as_overlay = false;
+#if !CONFIG_INKMETER_ENABLED
     StandbyClassic_todos.clear();
+#endif
     StandbyClassic_State() = StandbyClassicUiState{};
 }

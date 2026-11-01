@@ -1,5 +1,7 @@
 # Metalio E-Ink4-Plus
 
+**InkMeter可选配置：** `CONFIG_INKMETER_ENABLED`默认`n`，保留原厂完整应用与启动路径；显式启用后才以InkMeter替代WorkBuddy、百问和每日清单。构建请使用[独立配置命令与四组合矩阵](docs/spec/inkmeter-panel.md#111-独立配置与四组合矩阵)，根配置保持上游原样。InkMeter支持联网自动对时；手机配置使用可信局域网内HTTP明文，出站Sub2API保持HTTPS证书校验。修改功能时读[规格](docs/spec/inkmeter-panel.md)，判断验收或发布状态时查[镜像证据与待验收项](docs/spec/inkmeter-panel.md#13-验证记录与待验收事项)。下文保留原厂产品说明。
+
 <p align="center">
   <img src="images/product.png" alt="Metalio E-Ink4-Plus" width="720"/>
 </p>

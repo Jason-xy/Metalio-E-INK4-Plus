@@ -18,6 +18,9 @@
 #include "settings.h"
 #include "settings_screen/settings_screen.h"
 #include "task_screen/task_screen.h"
+#if CONFIG_INKMETER_ENABLED
+#include "inkmeter_screen/inkmeter_screen.h"
+#endif
 #include "vk_key_handler.h"
 #include "vk_page_repeat.h"
 #include "wallpaper_screen/wallpaper_screen.h"
@@ -61,14 +64,22 @@ void Home_OnAppNameDraw(lv_event_t* e)
     const char* Home_AppNameWorkBuddy() { return "workbuddy"; }
     #endif
 
+    #if CONFIG_INKMETER_ENABLED
+    const char *Home_AppNameInkMeter() { return "InkMeter"; }
+    #endif
+
     extern const AppEntry kApps[] = {
+#if !CONFIG_INKMETER_ENABLED
         {"A:ic_app_home_task.spng", Home_AppNameTask, TaskScreen::Create},
         {"A:ic_app_home_teacher.spng", Home_AppNameAssistant, AssistantScreen::Create},
+#endif
         {"A:ic_app_home_book.spng", Home_AppNameBook, BookScreen::Create},
         {"A:ic_app_home_wallpaper.spng", Home_AppNameWallpaper, WallpaperScreen::Create},
         {"A:ic_app_home_cloud.spng", Home_AppNameCloud, CloudScreen::Create},
         {"A:ic_app_home_setting.spng", Home_AppNameSettings, SettingsScreen::Create},
-        #if !CONFIG_BOARD_TYPE_METALIO_E_INK4_PLUS_GLOBAL
+        #if CONFIG_INKMETER_ENABLED
+        {"A:ic_app_home_inkmeter.spng", Home_AppNameInkMeter, InkMeterScreen::Create},
+        #elif !CONFIG_BOARD_TYPE_METALIO_E_INK4_PLUS_GLOBAL
         {"A:ic_app_home_workbuddy.spng", Home_AppNameWorkBuddy, WorkBuddyScreen::Create},
         #endif
     };
@@ -77,11 +88,15 @@ void Home_OnAppNameDraw(lv_event_t* e)
     extern const AppEntry kSlashApps[] = {
         {"A:ic_app_home_book.spng", Home_AppNameBook, BookScreen::Create},
         {"A:ic_app_home_wallpaper.spng", Home_AppNameWallpaper, WallpaperScreen::Create},
+#if !CONFIG_INKMETER_ENABLED
         {"A:ic_app_home_teacher.spng", Home_AppNameAssistant, AssistantScreen::Create},
         {"A:ic_app_home_task.spng", Home_AppNameTask, TaskScreen::Create},
+#endif
         {"A:ic_app_home_cloud.spng", Home_AppNameCloud, CloudScreen::Create},
         {"A:ic_app_home_setting.spng", Home_AppNameSettings, SettingsScreen::Create},
-        #if !CONFIG_BOARD_TYPE_METALIO_E_INK4_PLUS_GLOBAL
+        #if CONFIG_INKMETER_ENABLED
+        {"A:ic_app_home_inkmeter.spng", Home_AppNameInkMeter, InkMeterScreen::Create},
+        #elif !CONFIG_BOARD_TYPE_METALIO_E_INK4_PLUS_GLOBAL
         {"A:ic_app_home_workbuddy.spng", Home_AppNameWorkBuddy, WorkBuddyScreen::Create},
         #endif
     };
@@ -263,9 +278,13 @@ bool HomeScreen::GoToFirstPage() {
     // BOOT 长按快捷进百问（仍按住则 hold-through 聆听）；短按进待机改走电源键
     bool Home_OnBootLongPress()
     {
+#if CONFIG_INKMETER_ENABLED
+        return false;
+#else
         ESP_LOGI(TAG, "boot long -> assistant (hold-through PTT if still pressed)");
         AssistantScreen::RequestOpen();
         return true;
+#endif
     }
 
     void Home_OnHomeDeleted(lv_event_t *e)

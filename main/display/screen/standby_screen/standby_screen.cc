@@ -8,7 +8,12 @@
 #include "wallpaper_screen/wallpaper_screen.h"
 
 #include "application.h"
+#if CONFIG_INKMETER_ENABLED
+#include "assistant_voice_disabled.h"
+#include "inkmeter_screen/inkmeter_screen.h"
+#else
 #include "assistant_screen/assistant_screen.h"
+#endif
 #include "workbuddy_screen/workbuddy_screen.h"
 #include "book_screen/book_screen.h"
 #include "cloud_screen/cloud_screen.h"
@@ -177,8 +182,12 @@ void StandbyScreen::Show() {
 
     WallpaperScreen::SetDecodePaused(true);
     BookScreen::OnEnterStandby();
+#if CONFIG_INKMETER_ENABLED
+    InkMeterScreen::SetStandby(true);
+#else
     AssistantScreen::SetStandby(true);
     WorkBuddyScreen::SetStandby(true);
+#endif
     // Stop the log producer before closing admission. Existing file handles and
     // the explicitly permitted standby decoder finish before SD is removed.
     SdLogWriter_OnSdUnmounting();
@@ -223,8 +232,12 @@ void StandbyScreen::Dismiss() {
 
     DisplayUiSetFullScreen(false);
     PowerPolicy::GetInstance().OnStandbyOverlayDismissed();
+#if CONFIG_INKMETER_ENABLED
+    InkMeterScreen::SetStandby(false);
+#else
     AssistantScreen::SetStandby(false);
     WorkBuddyScreen::SetStandby(false);
+#endif
 
     // 清除待机前电量，待唤醒负载稳定 3s 后重新校准。
     Bq27220Gauge::GetInstance().ResetFilter();
@@ -232,9 +245,11 @@ void StandbyScreen::Dismiss() {
         disp->UpdateStatusBar(true);
     }
 
+#if !CONFIG_INKMETER_ENABLED
     if (TaskScreen::IsActive()) {
         TaskScreen::OnResumeFromStandby();
     }
+#endif
     BookScreen::OnResumeFromStandby();
     if (!reader::book_library_warmup::IsProgressCacheReady()) {
         reader::book_library_warmup::RequestBootWarmup();
@@ -357,8 +372,13 @@ bool StandbyScreen::HandleBootLongPress() {
     if (!s_host_alive) {
         return false;
     }
+#if CONFIG_INKMETER_ENABLED
+    ESP_LOGI(TAG, "boot long -> dismiss standby");
+    RequestWake();
+#else
     ESP_LOGI(TAG, "boot long -> dismiss + assistant (hold-through)");
     RequestWake(true);
+#endif
     return true;
 }
 

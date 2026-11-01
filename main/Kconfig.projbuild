@@ -1,5 +1,16 @@
 menu "Metalio E-Ink4-Plus"
 
+config INKMETER_ENABLED
+    bool "InkMeter firmware profile"
+    default n
+    select MBEDTLS_CERTIFICATE_BUNDLE
+    select MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY
+    select LV_FONT_MONTSERRAT_42
+    help
+        Build the InkMeter dashboard and local HTTP configuration instead of
+        WorkBuddy, Baiwen AI and Daily Checklist. Disabled keeps upstream apps.
+        InkMeter builds must disable core dumps; keys use ordinary NVS.
+
 choice BOARD_TYPE
     prompt "Board Type"
     default BOARD_TYPE_METALIO_E_INK4_PLUS

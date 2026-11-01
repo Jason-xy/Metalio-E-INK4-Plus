@@ -13,7 +13,12 @@
 #include "assets/lang_bluetooth.h"
 #include "mcp_server.h"
 #include "assets.h"
+#if CONFIG_INKMETER_ENABLED
+#include "assistant_voice_disabled.h"
+#include "inkmeter/inkmeter_clock.h"
+#else
 #include "assistant_screen/assistant_screen.h"
+#endif
 #include "settings_screen/settings_test/settings_test_screens.h"
 #include "a2ui_img_cache.h"
 #include "assistant_screen/assistant_chat_store.h"
@@ -1575,6 +1580,7 @@ void Application::Start() {
     fontpack_lv_ensure_ready();
     (void)fontpack_lv_font_ui();
 
+#if !CONFIG_INKMETER_ENABLED
     // A2UI 图片会话缓存：有 SD 则用 /sdcard/metalio/e-ink/a2ui_cache（开机清空）；无卡则仅 HTTP
     {
         esp_err_t cache_err = a2ui_img_cache_init();
@@ -1591,6 +1597,7 @@ void Application::Start() {
         }
     }
 
+#endif
     // Print board name/version info
     display->SetChatMessage("system", SystemInfo::GetUserAgent().c_str());
 
@@ -1650,7 +1657,9 @@ void Application::Start() {
     boot_version_checked_ = board.IsNetworkReady() && !board.IsWifiConfigMode();
     CheckNewVersion(ota);
     BootStandbyCheckpoint();
+#if !CONFIG_INKMETER_ENABLED
     if (boot_version_checked_) { CheckChatActivation(); }
+#endif
     BootStandbyCheckpoint();
 
     has_server_time_ = ota.HasServerTime();
@@ -1680,7 +1689,11 @@ void Application::Start() {
     SetDeviceState(kDeviceStateIdle);
     // Core readiness must not wait for optional weather/checklist HTTP requests.
     boot_ready_.store(true, std::memory_order_release);
+#if CONFIG_INKMETER_ENABLED
+    ESP_LOGI(TAG, "Boot core ready");
+#else
     ESP_LOGI(TAG, "Boot core ready; activation polling and PTT enabled");
+#endif
     FirmwareMemoryCheckpoint("boot-complete");
     FlushPendingXiaozhiVoice();
 
@@ -1694,7 +1707,9 @@ void Application::Start() {
     // 配网 SoftAP / 4G 未真正上网时 IsNetworkReady=false，一律跳过联网任务
     if (board.IsNetworkReady() && !board.IsWifiConfigMode()) {
         if (api::HasHost()) {
+#if !CONFIG_INKMETER_ENABLED
             TaskScreen::EnsureCacheSynced();
+#endif
             // sync 仅 POST：等 warmup 缓存就绪后组包，不再扫盘 Peek
             reader::book_progress_sync::RequestBootReport();
             device_wifi_location::RequestBootReport();
@@ -1794,6 +1809,9 @@ void Application::DispatchVoiceEvents() {
 }
 
 void Application::DispatchClockTick() {
+#if CONFIG_INKMETER_ENABLED
+    inkmeter::ServiceClock();
+#endif
     const int tick = clock_ticks_.fetch_add(1) + 1;
     if (!status_work_queued_.exchange(true)) {
         if (!ScreenLvAsync([](void* context) {
@@ -1816,7 +1834,11 @@ void Application::DispatchClockTick() {
         }, TaskDomain::Storage)) storage_retry_queued_.store(false);
     }
     const bool kick = activation_kick_.load(std::memory_order_acquire);
+#if CONFIG_INKMETER_ENABLED
+    if (boot_ready_.load(std::memory_order_acquire) && !boot_version_checked_.load() &&
+#else
     if (boot_ready_.load(std::memory_order_acquire) && !chat_config_ready_.load() &&
+#endif
         (tick % 10 == 0 || kick) && !StandbyScreen::IsActive() &&
         !activation_paused_.load() && !activation_work_queued_.exchange(true)) {
         if (!Schedule([this]() {
@@ -1829,7 +1851,9 @@ void Application::DispatchClockTick() {
                     CheckNewVersion(ota);
                     if (!activation_paused_.load()) boot_version_checked_.store(true);
                 }
+#if !CONFIG_INKMETER_ENABLED
                 CheckChatActivation();
+#endif
             }
             activation_work_queued_.store(false, std::memory_order_release);
         }, TaskDomain::Network)) activation_work_queued_.store(false);

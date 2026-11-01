@@ -1,5 +1,7 @@
 # Metalio E-Ink4-Plus
 
+**Optional InkMeter profile:** `CONFIG_INKMETER_ENABLED` defaults to `n`, preserving the upstream applications and startup paths. Enabling it builds InkMeter instead of WorkBuddy, Baiwen AI and Daily Checklist. Use the [isolated profile commands and four-build matrix](docs/spec/inkmeter-panel.md#111-独立配置与四组合矩阵); root configuration files stay upstream. InkMeter can automatically synchronize its clock online; phone configuration uses plaintext HTTP on a trusted LAN, while outbound Sub2API uses verified HTTPS. For feature changes read the [specification](docs/spec/inkmeter-panel.md); for acceptance or release decisions check the [firmware evidence and open items](docs/spec/inkmeter-panel.md#13-验证记录与待验收事项). The product description below is preserved from upstream.
+
 <p align="center">
   <img src="images/product_en.png" alt="Metalio E-Ink4-Plus" width="720"/>
 </p>

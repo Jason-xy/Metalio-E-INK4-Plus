@@ -15,7 +15,11 @@
 #include "application.h"
 #include "assets/lang_config.h"
 #include "assets/lang_screen.h"
+#if CONFIG_INKMETER_ENABLED
+#include "assistant_voice_disabled.h"
+#else
 #include "assistant_screen/assistant_screen.h"
+#endif
 #include "screen/workbuddy_screen/workbuddy_screen.h"
 #include "audio_codec.h"
 #include "board.h"

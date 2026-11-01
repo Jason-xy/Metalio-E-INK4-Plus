@@ -14,7 +14,9 @@
 #include <sys/time.h>
 #include <esp_heap_caps.h>
 #include <esp_log.h>
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
 #include <esp_core_dump.h>
+#endif
 #include <esp_partition.h>
 #include <unistd.h>
 #include <freertos/FreeRTOS.h>
