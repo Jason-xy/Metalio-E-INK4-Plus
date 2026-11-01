@@ -123,6 +123,8 @@ endif()
 # 本轮不编摄像头拍照路径（无 UVC）；用 stub
 list(FILTER ASSISTANT_SCREEN_SRCS EXCLUDE REGEX "assistant_boot_photo\\.cc$")
 
+include("${CMAKE_CURRENT_LIST_DIR}/inkmeter/inkmeter.cmake")
+
 idf_component_register(
     SRCS
         "app_main.cc"
@@ -164,8 +166,7 @@ idf_component_register(
         "display/screen/vk_key_handler.cc"
         "display/screen/vk_page_repeat.cc"
         "display/screen/boot_key_handler.cc"
-        "display/screen/checklist_cache.cc"
-        "display/screen/task_screen/task_screen.cc"
+        ${CHECKLIST_SRCS}
         "audio/audio_codec.cc"
         "audio/audio_service.cc"
         "audio/audio_service_capture.cc"
@@ -184,6 +185,7 @@ idf_component_register(
         ${OTA_UI_SRCS}
         ${HOME_SCREEN_SRCS}
         ${WORKBUDDY_SRCS}
+        ${INKMETER_SRCS}
         ${SETTINGS_SCREEN_SRCS}
         ${BLUETOOTH_SCREEN_SRCS}
         ${NETWORK_SCREEN_SRCS}
@@ -196,6 +198,8 @@ idf_component_register(
         "assets/embedded/bg_shutdown_zh.a2i1"
         "factory-test-assets/factory_test_audio.ogg"
         "boards/metalio-e-ink4-plus/display/firmware/ft6336u_v03_app.bin"
+    EMBED_TXTFILES
+        ${INKMETER_WEB}
     INCLUDE_DIRS
         "."
         "assets"
@@ -363,7 +367,7 @@ set(_home_icon_pixels "${CMAKE_CURRENT_BINARY_DIR}/home_icon_pixels.cc")
 add_custom_command(OUTPUT "${_home_icon_pixels}"
     COMMAND ${PYTHON} "${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_home_icon_pixels.py"
         --assets "${CMAKE_CURRENT_SOURCE_DIR}/xingzhi-assets" --output "${_home_icon_pixels}"
-        --override-dir "${CMAKE_CURRENT_SOURCE_DIR}/assets/embedded"
+        --override-dir "${HOME_ICON_OVERRIDE_DIR}"
         --pixel-dir "${_pixel_icon_dir}"
     DEPENDS ${_home_icon_pngs} ${_home_icon_overrides} ${_pixel_icon_pngs} "${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_home_icon_pixels.py"
         "${CMAKE_CURRENT_SOURCE_DIR}/xingzhi-assets" "${CMAKE_CURRENT_SOURCE_DIR}/assets/embedded" "${_pixel_icon_dir}"

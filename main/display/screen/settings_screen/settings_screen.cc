@@ -7,7 +7,9 @@
 #include "settings_about_tab.h"
 #include "settings_bluetooth_tab.h"
 #include "settings_common.h"
+#if !CONFIG_INKMETER_ENABLED
 #include "settings_conversation_tab.h"
+#endif
 #include "settings_frontlight_tab.h"
 #include "settings_haptic_tab.h"
 #include "settings_language_tab.h"
@@ -35,7 +37,9 @@ enum class SettingsTab : int {
     kHaptic = 3,
     kPower = 4,
     kFrontlight = 5,
+#if !CONFIG_INKMETER_ENABLED
     kConversation = 6,
+#endif
     kBluetooth = 7,
     kTest = 8,
     kLog = 9,
@@ -67,9 +71,11 @@ static const char* TabNamePower() {
 static const char* TabNameFrontlight() {
     return Lang::Strings::SETTINGS_TAB_FRONTLIGHT;
 }
+#if !CONFIG_INKMETER_ENABLED
 static const char* TabNameConversation() {
     return Lang::Strings::SETTINGS_TAB_CONVERSATION;
 }
+#endif
 static const char* TabNameBluetooth() {
     return Lang::Strings::SETTINGS_TAB_BLUETOOTH;
 }
@@ -89,7 +95,9 @@ static constexpr SettingsTabEntry kTabs[] = {
     {SettingsTab::kPower, TabNamePower},
     {SettingsTab::kCharging, TabNameCharging},
     {SettingsTab::kFrontlight, TabNameFrontlight},
+#if !CONFIG_INKMETER_ENABLED
     {SettingsTab::kConversation, TabNameConversation},
+#endif
     {SettingsTab::kBluetooth, TabNameBluetooth},
     {SettingsTab::kTest, TabNameTest},
     {SettingsTab::kLog, TabNameLog},
@@ -148,9 +156,11 @@ static void ResetTab(SettingsTab id) {
         case SettingsTab::kFrontlight:
             SettingsFrontlightTab_Reset();
             break;
+#if !CONFIG_INKMETER_ENABLED
         case SettingsTab::kConversation:
             SettingsConversationTab_Reset();
             break;
+#endif
         case SettingsTab::kBluetooth:
             SettingsBluetoothTab_Reset();
             break;
@@ -192,9 +202,11 @@ static void BuildTab(SettingsTab id) {
         case SettingsTab::kFrontlight:
             SettingsFrontlightTab_Build(page);
             break;
+#if !CONFIG_INKMETER_ENABLED
         case SettingsTab::kConversation:
             SettingsConversationTab_Build(page);
             break;
+#endif
         case SettingsTab::kBluetooth:
             SettingsBluetoothTab_Build(page);
             break;
@@ -252,9 +264,11 @@ static void ShowTab(int index) {
 
     const SettingsTab id = kTabs[index].id;
     BuildTab(id);
+#if !CONFIG_INKMETER_ENABLED
     if (id == SettingsTab::kConversation) {
         SettingsConversationTab_OnActivated();
     }
+#endif
     if (id == SettingsTab::kBluetooth) {
         SettingsBluetoothTab_OnActivated();
     }

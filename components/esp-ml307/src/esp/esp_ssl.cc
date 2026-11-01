@@ -1,6 +1,7 @@
 #include "esp_ssl.h"
 #include <esp_log.h>
 #include <esp_crt_bundle.h>
+#include <cerrno>
 #include <cstring>
 #include <unistd.h>
 #include <algorithm>
@@ -24,6 +25,11 @@ EspSsl::~EspSsl() {
 }
 
 bool EspSsl::Connect(const std::string& host, int port) {
+    if (event_group_ == nullptr) {
+        last_error_ = ENOMEM;
+        ESP_LOGE(TAG, "Failed to allocate TLS receive event group");
+        return false;
+    }
     if (tls_client_ != nullptr) {
         ESP_LOGE(TAG, "tls client has been initialized");
         return false;
@@ -31,6 +37,7 @@ bool EspSsl::Connect(const std::string& host, int port) {
 
     tls_client_ = esp_tls_init();
     if (tls_client_ == nullptr) {
+        last_error_ = ENOMEM;
         ESP_LOGE(TAG, "Failed to initialize TLS");
         return false;
     }
@@ -67,24 +74,34 @@ bool EspSsl::Connect(const std::string& host, int port) {
     connected_ = true;
 
     xEventGroupClearBits(event_group_, ESP_SSL_EVENT_RECEIVE_TASK_EXIT);
-    xTaskCreate([](void* arg) {
+    const auto task_result = xTaskCreate([](void* arg) {
         EspSsl* ssl = (EspSsl*)arg;
         ssl->ReceiveTask();
         xEventGroupSetBits(ssl->event_group_, ESP_SSL_EVENT_RECEIVE_TASK_EXIT);
         vTaskDelete(NULL);
     }, "ssl_receive", 4096, this, 1, &receive_task_handle_);
+    if (task_result != pdPASS) {
+        connected_ = false;
+        receive_task_handle_ = nullptr;
+        last_error_ = ENOMEM;
+        ESP_LOGE(TAG, "Failed to create TLS receive task");
+        // No task exists to signal exit; release TLS without waiting for one.
+        esp_tls_conn_destroy(tls_client_);
+        tls_client_ = nullptr;
+        return false;
+    }
     return true;
 }
 
 void EspSsl::Disconnect() {
     connected_ = false;
     
-    // Close socket if it is open
+    // Wake the reader without releasing the descriptor owned by esp_tls.
     if (tls_client_ != nullptr) {
         int sockfd;
         ESP_ERROR_CHECK(esp_tls_get_conn_sockfd(tls_client_, &sockfd));
         if (sockfd >= 0) {
-            close(sockfd);
+            shutdown(sockfd, SHUT_RDWR);
         }
     
         auto bits = xEventGroupWaitBits(event_group_, ESP_SSL_EVENT_RECEIVE_TASK_EXIT, pdFALSE, pdFALSE, pdMS_TO_TICKS(10000));

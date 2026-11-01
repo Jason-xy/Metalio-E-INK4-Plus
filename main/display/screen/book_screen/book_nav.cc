@@ -232,7 +232,11 @@ void PollReaderPageWork() {
 
 VkKeyScreenDesc BookAiLongPressDesc(ScreenFactory factory) {
     return VkKeyScreenDesc{factory, BookScreen::OnVkKey, BookScreen::OnBootClick,
+#if CONFIG_INKMETER_ENABLED
+                           nullptr, nullptr, nullptr,
+#else
                            BookScreen::OnBootLongPress, nullptr, nullptr,
+#endif
                            BookScreen::OnVkKeyLongPress, BookScreen::OnVkKeyPressUp};
 }
 

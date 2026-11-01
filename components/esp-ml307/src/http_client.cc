@@ -8,6 +8,7 @@
 #include <chrono>
 #include <algorithm>
 #include <cctype>
+#include <limits>
 
 static const char *TAG = "HttpClient";
 
@@ -291,6 +292,7 @@ void HttpClient::Close() {
 
 void HttpClient::OnTcpData(const std::string& data) {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (cancelled_.load() || connection_error_) return;
 
     // 检查 body_chunks_ 大小，如果超过 8KB
     {
@@ -412,7 +414,10 @@ void HttpClient::ProcessReceivedData() {
 
                 std::string line = GetNextLine(rx_buffer_);
 
-                chunk_size_ = ParseChunkSize(line);
+                if (!ParseChunkSize(line, chunk_size_)) {
+                    SetError();
+                    return;
+                }
                 chunk_received_ = 0;
 
                 if (chunk_size_ == 0) {
@@ -433,14 +438,22 @@ void HttpClient::ProcessReceivedData() {
                     chunk_received_ += available;
 
                     if (chunk_received_ == chunk_size_) {
-                        // 跳过 chunk 后的 CRLF
-                        if (rx_buffer_.size() >= 2 && rx_buffer_.substr(0, 2) == "\r\n") {
-                            rx_buffer_.erase(0, 2);
-                        }
-                        parse_state_ = ParseState::CHUNK_SIZE;
+                        // The delimiter may arrive in a later TLS/TCP fragment.
+                        parse_state_ = ParseState::CHUNK_CRLF;
                     }
                 }
                 if (available == 0) return;  // 需要更多数据
+                break;
+            }
+
+            case ParseState::CHUNK_CRLF: {
+                if (rx_buffer_.size() < 2) return;
+                if (rx_buffer_.compare(0, 2, "\r\n") != 0) {
+                    SetError();
+                    return;
+                }
+                rx_buffer_.erase(0, 2);
+                parse_state_ = ParseState::CHUNK_SIZE;
                 break;
             }
 
@@ -532,28 +545,25 @@ void HttpClient::ParseRegularBody(const std::string& data) {
     }
 }
 
-size_t HttpClient::ParseChunkSize(const std::string& chunk_size_line) {
-    // 解析 chunk size（十六进制）
-    std::string size_str = chunk_size_line;
-
-    // 移除 CRLF 和任何扩展
-    size_t semi_pos = size_str.find(';');
-    if (semi_pos != std::string::npos) {
-        size_str = size_str.substr(0, semi_pos);
+bool HttpClient::ParseChunkSize(const std::string& line, size_t& size) {
+    const size_t end = line.find(';');
+    size_t digits = end == std::string::npos ? line.size() : end;
+    while (digits > 0 && (line[digits - 1] == ' ' || line[digits - 1] == '\t'))
+        --digits;
+    if (digits == 0) return false;
+    size = 0;
+    for (size_t i = 0; i < digits; ++i) {
+        const unsigned char c = line[i];
+        unsigned digit;
+        if (c >= '0' && c <= '9') digit = c - '0';
+        else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F') digit = c - 'A' + 10;
+        else return false;
+        if (size > (std::numeric_limits<size_t>::max() - digit) / 16)
+            return false;
+        size = size * 16 + digit;
     }
-
-    size_str.erase(size_str.find_last_not_of(" \t\r\n") + 1);
-
-    // 安全地解析十六进制 chunk 大小
-    char* endptr;
-    unsigned long chunk_size = strtoul(size_str.c_str(), &endptr, 16);
-
-    if (endptr == size_str.c_str() || *endptr != '\0') {
-        ESP_LOGE(TAG, "Parse chunk size failed");
-        return 0;
-    }
-
-    return static_cast<size_t>(chunk_size);
+    return true;
 }
 
 std::string HttpClient::GetNextLine(std::string& buffer) {
@@ -579,7 +589,14 @@ bool HttpClient::HasCompleteLine(const std::string& buffer) {
 
 void HttpClient::SetError() {
     ESP_LOGE(TAG, "HTTP parse error");
+    connection_error_ = true;
+    connected_ = false;
+    server_keep_alive_ = false;
+    eof_ = true;
+    rx_buffer_.clear();
     xEventGroupSetBits(event_group_handle_, EC801E_HTTP_EVENT_ERROR);
+    cv_.notify_all();
+    write_cv_.notify_all();
 }
 
 int HttpClient::Read(char* buffer, size_t buffer_size) {

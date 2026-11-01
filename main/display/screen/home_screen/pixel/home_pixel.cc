@@ -1,6 +1,11 @@
 #include "home_pixel.h"
 #include "book_screen/book_screen.h"
 #include "workbuddy_screen/workbuddy_screen.h"
+#if CONFIG_INKMETER_ENABLED
+#include "wallpaper_screen/wallpaper_screen.h"
+#include "cloud_screen/cloud_screen.h"
+#include "settings_screen/settings_screen.h"
+#endif
 #include "home_pixel_font.h"
 #include "home_icon_source.h"
 #include "home_screen/home_screen_ui.h"
@@ -163,6 +168,7 @@ void Refresh(bool force) {
     }
     SetText(s.time, time_text);
     SetText(s.date, date_text);
+#if !CONFIG_INKMETER_ENABLED
     size_t total = 0, done = 0;
     const bool has_tasks = valid && checklist_cache_day_counts(day, &total, &done);
     const size_t values[] = {total, done, total - done};
@@ -171,6 +177,7 @@ void Refresh(bool force) {
         if (has_tasks) std::snprintf(count, sizeof(count), "%02u", static_cast<unsigned>(values[i]));
         SetText(s.counts[i], count);
     }
+#endif
     RefreshRecent();
 }
 } // namespace
@@ -218,6 +225,7 @@ void HomePixel_Build(lv_obj_t* screen, lv_coord_t status_height) {
     lv_bar_set_range(s.progress, 0, 1000);
     lv_bar_set_value(s.progress, 0, LV_ANIM_OFF);
 
+#if !CONFIG_INKMETER_ENABLED
     auto* tasks = Card(X(64), Y(658), panel_width, Y(144), kSlashApps[3]);
     BlackTab(tasks, Lang::Strings::TASK_TITLE_TODO, false);
     const char* captions[] = {Lang::Strings::HOME_PIXEL_TODAY, Lang::Strings::TASK_TAB_DONE,
@@ -239,6 +247,7 @@ void HomePixel_Build(lv_obj_t* screen, lv_coord_t status_height) {
         lv_obj_set_style_border_color(s.counts[i], lv_color_black(), 0);
     }
 
+#endif
     s_app_child_start = lv_obj_get_child_count(s.root);
     HomePixel_FillAppsPage();
     Refresh(true);
@@ -250,18 +259,32 @@ void HomePixel_FillAppsPage() {
     while (lv_obj_get_child_count(s.root) > s_app_child_start) {
         lv_obj_delete(lv_obj_get_child(s.root, s_app_child_start));
     }
+#if !CONFIG_INKMETER_ENABLED
     const char* icons[] = {"A:ic_px_book.spng", "A:ic_px_wallpaper.spng", "A:ic_px_ai.spng",
                            "A:ic_px_task.spng", "A:ic_px_cloud.spng", "A:ic_px_setting.spng"};
+#endif
     const int columns[] = {64, 334, 605};
     const int edge = X(160);
     const int row_step = edge + (Y(251) - edge) * 2 / 3;
     const int start = Home_page * kAppsPerPage;
     for (int i = 0; i < kAppsPerPage && start + i < kSlashAppCount; ++i) {
         const int app = start + i;
+#if CONFIG_INKMETER_ENABLED
+        const AppEntry& entry = kSlashApps[app];
+        const char* icon_path = entry.icon_path;
+        if (entry.create == BookScreen::Create) icon_path = "A:ic_px_book.spng";
+        else if (entry.create == WallpaperScreen::Create) icon_path = "A:ic_px_wallpaper.spng";
+        else if (entry.create == CloudScreen::Create) icon_path = "A:ic_px_cloud.spng";
+        else if (entry.create == SettingsScreen::Create) icon_path = "A:ic_px_setting.spng";
+        auto* card = Card(X(columns[i % 3]), Y(658) + (i / 3) * row_step, edge, edge, entry);
+        auto* icon = lv_image_create(card);
+        lv_image_set_src(icon, HomeIconSource(icon_path));
+#else
         const bool is_buddy = kSlashApps[app].create == WorkBuddyScreen::Create;
         auto* card = Card(X(columns[i % 3]), Y(882) + (i / 3) * row_step, edge, edge, kSlashApps[app]);
         auto* icon = lv_image_create(card);
         lv_image_set_src(icon, HomeIconSource(app < 6 ? icons[app] : kSlashApps[app].icon_path));
+#endif
         lv_obj_set_style_image_recolor(icon, lv_color_black(), 0);
         lv_obj_set_style_image_recolor_opa(icon, LV_OPA_COVER, 0);
         const int icon_edge = X(100);
@@ -270,8 +293,12 @@ void HomePixel_FillAppsPage() {
         lv_image_set_antialias(icon, false);
         lv_obj_align(icon, LV_ALIGN_CENTER, 0, -Y(6));
         lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE);
+#if CONFIG_INKMETER_ENABLED
+        const char* name = entry.create == BookScreen::Create ? Lang::Strings::HOME_PIXEL_READ : entry.name();
+#else
         const char* name = is_buddy ? "buddy" : app == 0 ? Lang::Strings::HOME_PIXEL_READ :
                            app == 3 ? Lang::Strings::HOME_PIXEL_NOTES : kSlashApps[app].name();
+#endif
         BlackTab(card, name, true);
     }
 }
